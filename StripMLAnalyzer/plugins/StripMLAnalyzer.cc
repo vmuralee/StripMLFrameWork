@@ -22,31 +22,38 @@
 // user include files
 #include "FWCore/Framework/interface/Frameworkfwd.h"
 #include "FWCore/Framework/interface/one/EDAnalyzer.h"
-
+#include "FWCore/ServiceRegistry/interface/Service.h"
 #include "FWCore/Framework/interface/Event.h"
 #include "FWCore/Framework/interface/MakerMacros.h"
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
 #include "FWCore/Utilities/interface/InputTag.h"
 
+#include "CommonTools/UtilAlgos/interface/TFileService.h"
+#include "CommonTools/Utils/interface/TFileDirectory.h"
+
 #include "DataFormats/DetId/interface/DetId.h"
 #include "DataFormats/TrackReco/interface/Track.h"
 #include "DataFormats/TrackReco/interface/TrackFwd.h"
-
 #include "DataFormats/TrackerRecHit2D/interface/SiStripRecHit1D.h"
 #include "DataFormats/TrackerRecHit2D/interface/SiStripRecHit2D.h"
 #include "DataFormats/SiStripCluster/interface/SiStripClusterTools.h"
+#include "DataFormats/SiStripCluster/interface/SiStripCluster.h"
+#include "DataFormats/GeometryVector/interface/GlobalPoint.h"
 
 #include "Geometry/TrackerGeometryBuilder/interface/TrackerGeometry.h"
+#include "Geometry/CommonTopologies/interface/StripTopology.h"
 #include "Geometry/Records/interface/TrackerDigiGeometryRecord.h"
-#include "DataFormats/SiStripCluster/interface/SiStripCluster.h"
-//
-// class declaration
-//
+#include "Geometry/TrackerGeometryBuilder/interface/StripGeomDetUnit.h"
 
-// If the analyzer does not use TFileService, please remove
-// the template argument to the base class so the class inherits
-// from  edm::one::EDAnalyzer<>
-// This will improve performance in multithreaded jobs.
+//ROOT inclusion
+#include "TROOT.h"
+#include "TFile.h"
+#include "TNtuple.h"
+#include "TTree.h"
+#include "TMath.h"
+#include "TList.h"
+#include "TString.h"
+#include "TVector3.h"
 
 using reco::TrackCollection;
 
@@ -55,20 +62,34 @@ public:
   explicit StripMLAnalyzer(const edm::ParameterSet&);
   ~StripMLAnalyzer() override;
 
-  static void fillDescriptions(edm::ConfigurationDescriptions& descriptions);
-
 private:
-  void beginJob() override;
+
   void analyze(const edm::Event&, const edm::EventSetup&) override;
-  void endJob() override;
 
   // ----------member data ---------------------------
   edm::EDGetTokenT<edmNew::DetSetVector<SiStripCluster>> clusterCollectionToken_;
   edm::ESGetToken<TrackerGeometry, TrackerDigiGeometryRecord> tkGeomToken_;
   edm::EDGetTokenT<reco::TrackCollection> tracksToken_; 
-#ifdef THIS_IS_AN_EVENTSETUP_EXAMPLE
-  edm::ESGetToken<SetupData, SetupRecord> setupToken_;
-#endif
+
+
+
+  TTree* clusterTree;
+
+  edm::Service<TFileService> fs;
+  edm::EventNumber_t eventN;
+  int runN;
+  int lumi;
+
+  uint32_t    detId_;
+  uint16_t    size;
+  
+  int         charge;
+
+  const static int nMax = 800000;
+  uint16_t    adc[nMax];
+  uint16_t    sig_adc[nMax];
+  uint16_t    bkg_adc[nMax];
+  
 };
 
 //
@@ -83,15 +104,27 @@ private:
 // constructors and destructor
 //
 StripMLAnalyzer::StripMLAnalyzer(const edm::ParameterSet& iConfig) {
-#ifdef THIS_IS_AN_EVENTSETUP_EXAMPLE
-  setupDataToken_ = esConsumes<SetupData, SetupRecord>();
-#endif
+
   //now do what ever initialization is needed
    tracksToken_ = consumes<reco::TrackCollection>(iConfig.getParameter<edm::InputTag>("tracks"));
    clusterCollectionToken_  = consumes<edmNew::DetSetVector<SiStripCluster>>(iConfig.getParameter<edm::InputTag>("siStripClustersTag"));
 
    tkGeomToken_ = esConsumes();
 
+   usesResource("TFileService");
+
+   clusterTree->Branch("event", &eventN, "event/i");
+   clusterTree->Branch("run",   &runN, "run/I");
+   clusterTree->Branch("lumi",  &lumi, "lumi/I");
+
+   clusterTree->Branch("detId", &detId_, "detId/i");
+   clusterTree->Branch("charge", &charge, "charge/I");
+   clusterTree->Branch("size", &size, "size/s");
+   clusterTree->Branch("adc", adc, "adc[size]/s");
+
+   clusterTree->Branch("sig_adc", sig_adc, "sig_adc[size]/s");
+   clusterTree->Branch("bkg_adc", bkg_adc, "bkg_adc[size]/s");
+   
 }
 
 StripMLAnalyzer::~StripMLAnalyzer() {
@@ -112,10 +145,13 @@ void StripMLAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& i
   const auto& tkGeom = &iSetup.getData(tkGeomToken_);
   const auto tkDets = tkGeom->dets();
 
+  edm::Handle<edmNew::DetSetVector<SiStripCluster>> clusterCollection = iEvent.getHandle(clusterCollectionToken_);
+  const auto& tracksHandle = iEvent.getHandle(tracksToken_);
+  
   std::map<DetId,SiStripRecHit1D::ClusterRef> MapRecoHits;
 
-  for (const auto& track: tracks){
-    s
+  for (const auto& track: *tracksHandle){
+    
     for (auto const &hit : track.recHits()){
       DetId detid = hit->geographicalId();
       int subDet = detid.subdetId();
@@ -130,7 +166,7 @@ void StripMLAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& i
   	  if(striphit != nullptr){
 
 	    SiStripRecHit1D::ClusterRef stripclust(striphit->cluster());
-
+	    
 	    MapRecoHits[detid] = stripclust;
 	  }
       }
@@ -138,50 +174,65 @@ void StripMLAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& i
   }
 
   for (const auto& detSiStripClusters : *clusterCollection) {
+
+    eventN = iEvent.id().event();
+    runN   = (int) iEvent.id().run();
+    lumi   = (int) iEvent.id().luminosityBlock();
+    
     DetId detId = detSiStripClusters.detId();
+
     int subDet = detId.subdetId();
     for (const auto& stripCluster : detSiStripClusters) {
+
+      detId_ = detId;
+      charge = stripCluster.charge();
+      size   = stripCluster.size();
+      
+      
+      const auto& _detId = detId; // for the capture clause in the lambda function
+      auto det = std::find_if(tkDets.begin(), tkDets.end(), [_detId](auto& elem) -> bool {
+	return (elem->geographicalId().rawId() == _detId);
+      });
+      const StripTopology& p = dynamic_cast<const StripGeomDetUnit*>(*det)->specificTopology();
+      
+      LocalPoint tar_lp = p.localPosition((float)  stripCluster.barycenter());
+      LocalPoint ref_lp = p.localPosition((float)  MapRecoHits[detId]->barycenter());
+      
       GlobalPoint tar_gp = (tkGeom->idToDet(detId))->surface().toGlobal(p.localPosition((float) stripCluster.barycenter()));
       GlobalPoint ref_gp = (tkGeom->idToDet(detId))->surface().toGlobal(p.localPosition((float) MapRecoHits[detId]->barycenter()));
 
-      
-      
-      
+      for (int strip = stripCluster.firstStrip(); strip < stripCluster.endStrip(); ++strip){
+
+	adc [strip - stripCluster.firstStrip()] = stripCluster[strip - stripCluster.firstStrip()];
+
+      }
+
+      bool matched = false; 
+      if(std::fabs(tar_lp.x() - ref_lp.x()) < 0.01 &&  (subDet == SiStripDetId::TIB || subDet == SiStripDetId::TOB)){
+	matched = true;
+      }
+      else if(std::fabs(tar_gp.z() - ref_gp.z()) <= 0.0001 && (subDet == SiStripDetId::TID || subDet == SiStripDetId::TEC)){
+	matched = true;
+      }
+      else{
+	matched = false;
+      }
+      if (matched){
+	for (int strip = stripCluster.firstStrip(); strip < stripCluster.endStrip(); ++strip){
+	  sig_adc [strip - stripCluster.firstStrip()] = stripCluster[strip - stripCluster.firstStrip()];
+	}
+      }
+      else{
+	for (int strip = stripCluster.firstStrip(); strip < stripCluster.endStrip(); ++strip){
+	  bkg_adc [strip - stripCluster.firstStrip()] = stripCluster[strip - stripCluster.firstStrip()];
+	}
+      }
+      clusterTree->Fill();
     }
   }
   
   
-#ifdef THIS_IS_AN_EVENTSETUP_EXAMPLE
-  // if the SetupData is always needed
-  auto setup = iSetup.getData(setupToken_);
-  // if need the ESHandle to check if the SetupData was there or not
-  auto pSetup = iSetup.getHandle(setupToken_);
-#endif
-}
 
-// ------------ method called once each job just before starting event loop  ------------
-void StripMLAnalyzer::beginJob() {
-  // please remove this method if not needed
-}
-
-// ------------ method called once each job just after ending the event loop  ------------
-void StripMLAnalyzer::endJob() {
-  // please remove this method if not needed
-}
-
-// ------------ method fills 'descriptions' with the allowed parameters for the module  ------------
-void StripMLAnalyzer::fillDescriptions(edm::ConfigurationDescriptions& descriptions) {
-  //The following says we do not know what parameters are allowed so do no validation
-  // Please change this to state exactly what you do use, even if it is no parameters
-  edm::ParameterSetDescription desc;
-  desc.setUnknown();
-  descriptions.addDefault(desc);
-
-  //Specify that only 'tracks' is allowed
-  //To use, remove the default given above and uncomment below
-  //edm::ParameterSetDescription desc;
-  //desc.addUntracked<edm::InputTag>("tracks", edm::InputTag("ctfWithMaterialTracks"));
-  //descriptions.addWithDefaultLabel(desc);
 }
 
 //define this as a plug-in
