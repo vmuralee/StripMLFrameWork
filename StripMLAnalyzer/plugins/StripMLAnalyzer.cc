@@ -39,6 +39,9 @@
 #include "DataFormats/SiStripCluster/interface/SiStripClusterTools.h"
 #include "DataFormats/SiStripCluster/interface/SiStripCluster.h"
 #include "DataFormats/GeometryVector/interface/GlobalPoint.h"
+#include "DataFormats/Common/interface/DetSet.h"
+#include "DataFormats/Common/interface/DetSetVector.h"
+#include "DataFormats/Common/interface/DetSetVectorNew.h"
 
 #include "Geometry/TrackerGeometryBuilder/interface/TrackerGeometry.h"
 #include "Geometry/CommonTopologies/interface/StripTopology.h"
@@ -70,7 +73,7 @@ private:
   edm::EDGetTokenT<edmNew::DetSetVector<SiStripCluster>> clusterCollectionToken_;
   edm::ESGetToken<TrackerGeometry, TrackerDigiGeometryRecord> tkGeomToken_;
   edm::EDGetTokenT<reco::TrackCollection> tracksToken_; 
-
+  edm::InputTag inputTagClusters;
 
 
   TTree* clusterTree;
@@ -104,26 +107,28 @@ private:
 // constructors and destructor
 //
 StripMLAnalyzer::StripMLAnalyzer(const edm::ParameterSet& iConfig) {
-
+  
   //now do what ever initialization is needed
-   tracksToken_ = consumes<reco::TrackCollection>(iConfig.getParameter<edm::InputTag>("tracks"));
-   clusterCollectionToken_  = consumes<edmNew::DetSetVector<SiStripCluster>>(iConfig.getParameter<edm::InputTag>("siStripClustersTag"));
+  inputTagClusters  = iConfig.getParameter<edm::InputTag>("siStripClustersTag");
+  tracksToken_ = consumes<reco::TrackCollection>(iConfig.getParameter<edm::InputTag>("tracks"));
+  clusterCollectionToken_  = consumes<edmNew::DetSetVector<SiStripCluster>>(inputTagClusters);
 
-   tkGeomToken_ = esConsumes();
+  tkGeomToken_ = esConsumes();
 
-   usesResource("TFileService");
+  usesResource("TFileService");
 
-   clusterTree->Branch("event", &eventN, "event/i");
-   clusterTree->Branch("run",   &runN, "run/I");
-   clusterTree->Branch("lumi",  &lumi, "lumi/I");
+  clusterTree = fs->make<TTree>("clusterTree","clusterTree");
+  clusterTree->Branch("event", &eventN, "event/i");
+  clusterTree->Branch("run",   &runN, "run/I");
+  clusterTree->Branch("lumi",  &lumi, "lumi/I");
 
-   clusterTree->Branch("detId", &detId_, "detId/i");
-   clusterTree->Branch("charge", &charge, "charge/I");
-   clusterTree->Branch("size", &size, "size/s");
-   clusterTree->Branch("adc", adc, "adc[size]/s");
+  clusterTree->Branch("detId", &detId_, "detId/i");
+  clusterTree->Branch("charge", &charge, "charge/I");
+  clusterTree->Branch("size", &size, "size/s");
+  clusterTree->Branch("adc", adc, "adc[size]/s");
 
-   clusterTree->Branch("sig_adc", sig_adc, "sig_adc[size]/s");
-   clusterTree->Branch("bkg_adc", bkg_adc, "bkg_adc[size]/s");
+  clusterTree->Branch("sig_adc", sig_adc, "sig_adc[size]/s");
+  clusterTree->Branch("bkg_adc", bkg_adc, "bkg_adc[size]/s");
    
 }
 
@@ -145,9 +150,15 @@ void StripMLAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& i
   const auto& tkGeom = &iSetup.getData(tkGeomToken_);
   const auto tkDets = tkGeom->dets();
 
-  edm::Handle<edmNew::DetSetVector<SiStripCluster>> clusterCollection = iEvent.getHandle(clusterCollectionToken_);
+  //  edm::Handle<edmNew::DetSetVector<SiStripCluster>> clusterCollection = iEvent.getHandle(clusterCollectionToken_);
+
+  const auto& clusterCollection = iEvent.getHandle(clusterCollectionToken_);
   const auto& tracksHandle = iEvent.getHandle(tracksToken_);
-  
+
+  if (!clusterCollection.isValid()){
+    edm::LogError("BadRefCore") << "Cluster handle is invalid!";
+  }
+
   std::map<DetId,SiStripRecHit1D::ClusterRef> MapRecoHits;
 
   for (const auto& track: *tracksHandle){
@@ -163,7 +174,7 @@ void StripMLAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& i
       const std::type_info &type = typeid(*hit);
       if (type == typeid(SiStripRecHit1D)){
 	const SiStripRecHit1D *striphit = dynamic_cast<const SiStripRecHit1D *>(hit);
-  	  if(striphit != nullptr){
+	  if(striphit != nullptr){
 
 	    SiStripRecHit1D::ClusterRef stripclust(striphit->cluster());
 	    
@@ -194,13 +205,18 @@ void StripMLAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& i
 	return (elem->geographicalId().rawId() == _detId);
       });
       const StripTopology& p = dynamic_cast<const StripGeomDetUnit*>(*det)->specificTopology();
+
+      auto mapid = MapRecoHits.find(detId);
+
+      if(mapid == MapRecoHits.end()) continue;
       
       LocalPoint tar_lp = p.localPosition((float)  stripCluster.barycenter());
       LocalPoint ref_lp = p.localPosition((float)  MapRecoHits[detId]->barycenter());
       
-      GlobalPoint tar_gp = (tkGeom->idToDet(detId))->surface().toGlobal(p.localPosition((float) stripCluster.barycenter()));
-      GlobalPoint ref_gp = (tkGeom->idToDet(detId))->surface().toGlobal(p.localPosition((float) MapRecoHits[detId]->barycenter()));
+      GlobalPoint tar_gp = (tkGeom->idToDet(detId))->surface().toGlobal(tar_lp);
+      GlobalPoint ref_gp = (tkGeom->idToDet(detId))->surface().toGlobal(ref_lp);
 
+      //std::cout<<tar_gp.x()<<"  "<<ref_gp.x()<<std::endl;
       for (int strip = stripCluster.firstStrip(); strip < stripCluster.endStrip(); ++strip){
 
 	adc [strip - stripCluster.firstStrip()] = stripCluster[strip - stripCluster.firstStrip()];

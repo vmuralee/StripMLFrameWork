@@ -3,6 +3,7 @@
 <use name="DataFormats/SiStripCluster"/>
 <use name="DataFormats/GeometryVector"/>
 <use name="DataFormats/DetId"/>
+<use name="DataFormats/Common"/>
 <use name="CommonTools/UtilAlgos"/>
 <use name="CommonTools/Utils"/>
 <use name="Geometry/TrackerGeometryBuilder"/>
