@@ -85,6 +85,8 @@ private:
 
   uint32_t    detId_;
   uint16_t    size;
+  uint16_t    sig_width;
+  uint16_t    bkg_width;
   
   int         charge;
 
@@ -92,6 +94,10 @@ private:
   uint16_t    adc[nMax];
   uint16_t    sig_adc[nMax];
   uint16_t    bkg_adc[nMax];
+  float       sig_hitX[nMax];
+  float       sig_hitY[nMax];
+  float       bkg_hitX[nMax];
+  float       bkg_hitY[nMax];
   
 };
 
@@ -129,7 +135,13 @@ StripMLAnalyzer::StripMLAnalyzer(const edm::ParameterSet& iConfig) {
 
   clusterTree->Branch("sig_adc", sig_adc, "sig_adc[size]/s");
   clusterTree->Branch("bkg_adc", bkg_adc, "bkg_adc[size]/s");
-   
+  clusterTree->Branch("sig_hitX", sig_hitX, "sig_hitX[size]/F");
+  clusterTree->Branch("sig_hitY", sig_hitY, "sig_hitY[size]/F");
+  clusterTree->Branch("bkg_hitX", bkg_hitX, "bkg_hitX[size]/F");
+  clusterTree->Branch("bkg_hitY", bkg_hitY, "bkg_hitY[size]/F");
+  clusterTree->Branch("sig_width", &sig_width, "sig_width/s");
+  clusterTree->Branch("bkg_width", &bkg_width, "bkg_width/s");
+  
 }
 
 StripMLAnalyzer::~StripMLAnalyzer() {
@@ -182,8 +194,10 @@ void StripMLAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& i
 	  }
       }
     }
+
   }
 
+   
   for (const auto& detSiStripClusters : *clusterCollection) {
 
     eventN = iEvent.id().event();
@@ -193,55 +207,72 @@ void StripMLAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& i
     DetId detId = detSiStripClusters.detId();
 
     int subDet = detId.subdetId();
+    bool matched = false; 
     for (const auto& stripCluster : detSiStripClusters) {
 
       detId_ = detId;
       charge = stripCluster.charge();
       size   = stripCluster.size();
-      
-      
+
+      for (int strip = stripCluster.firstStrip(); strip < stripCluster.endStrip(); ++strip){
+	
+	adc [strip - stripCluster.firstStrip()] = stripCluster[strip - stripCluster.firstStrip()];
+ 	
+      }
+      ++dcount;
+
       const auto& _detId = detId; // for the capture clause in the lambda function
       auto det = std::find_if(tkDets.begin(), tkDets.end(), [_detId](auto& elem) -> bool {
 	return (elem->geographicalId().rawId() == _detId);
       });
       const StripTopology& p = dynamic_cast<const StripGeomDetUnit*>(*det)->specificTopology();
 
+      
       auto mapid = MapRecoHits.find(detId);
-
-      if(mapid == MapRecoHits.end()) continue;
-      
+      	
       LocalPoint tar_lp = p.localPosition((float)  stripCluster.barycenter());
-      LocalPoint ref_lp = p.localPosition((float)  MapRecoHits[detId]->barycenter());
-      
       GlobalPoint tar_gp = (tkGeom->idToDet(detId))->surface().toGlobal(tar_lp);
-      GlobalPoint ref_gp = (tkGeom->idToDet(detId))->surface().toGlobal(ref_lp);
 
-      //std::cout<<tar_gp.x()<<"  "<<ref_gp.x()<<std::endl;
-      for (int strip = stripCluster.firstStrip(); strip < stripCluster.endStrip(); ++strip){
 
-	adc [strip - stripCluster.firstStrip()] = stripCluster[strip - stripCluster.firstStrip()];
+      if(mapid != MapRecoHits.end()){
+	LocalPoint ref_lp = p.localPosition((float)  MapRecoHits[detId]->barycenter());
+	GlobalPoint ref_gp = (tkGeom->idToDet(detId))->surface().toGlobal(ref_lp);
 
-      }
 
-      bool matched = false; 
-      if(std::fabs(tar_lp.x() - ref_lp.x()) < 0.01 &&  (subDet == SiStripDetId::TIB || subDet == SiStripDetId::TOB)){
-	matched = true;
-      }
-      else if(std::fabs(tar_gp.z() - ref_gp.z()) <= 0.0001 && (subDet == SiStripDetId::TID || subDet == SiStripDetId::TEC)){
-	matched = true;
-      }
-      else{
-	matched = false;
-      }
-      if (matched){
-	for (int strip = stripCluster.firstStrip(); strip < stripCluster.endStrip(); ++strip){
-	  sig_adc [strip - stripCluster.firstStrip()] = stripCluster[strip - stripCluster.firstStrip()];
+      
+	if(std::fabs(tar_lp.x() - ref_lp.x()) < 0.01 &&  (subDet == SiStripDetId::TIB || subDet == SiStripDetId::TOB)){
+	  matched = true;
+
 	}
+	else if(std::fabs(tar_gp.z() - ref_gp.z()) <= 0.0001 && (subDet == SiStripDetId::TID || subDet == SiStripDetId::TEC)){
+	  matched = true;
+
+	}
+	else{
+	  matched = false;
+	}
+
+      
+	if (matched){
+	  ++mcount;
+	  sig_width = stripCluster.size();
+	  for (int strip = stripCluster.firstStrip(); strip < stripCluster.endStrip(); ++strip){ 
+	    sig_hitX [strip - stripCluster.firstStrip()] = tar_gp.x();
+	    sig_hitY [strip - stripCluster.firstStrip()] = tar_gp.y();
+	    sig_adc [strip - stripCluster.firstStrip()] = stripCluster[strip - stripCluster.firstStrip()];
+	  }
+	}
+	
       }
       else{
+	++ucount;
+	bkg_width = stripCluster.size();
 	for (int strip = stripCluster.firstStrip(); strip < stripCluster.endStrip(); ++strip){
+	  bkg_hitX [strip - stripCluster.firstStrip()] = tar_gp.x();
+	  bkg_hitY [strip - stripCluster.firstStrip()] = tar_gp.y();
 	  bkg_adc [strip - stripCluster.firstStrip()] = stripCluster[strip - stripCluster.firstStrip()];
 	}
+	
       }
       clusterTree->Fill();
     }
