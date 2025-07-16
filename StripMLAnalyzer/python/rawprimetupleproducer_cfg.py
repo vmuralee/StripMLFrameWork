@@ -19,8 +19,8 @@ process.maxEvents = cms.untracked.PSet(input = cms.untracked.int32(-1))
 
 process.source = cms.Source("PoolSource",
     fileNames = cms.untracked.vstring(
-        '/store/relval/CMSSW_14_1_0/RelValSinglePiFlatPt0p7To10/GEN-SIM-RECO/140X_mcRun3_2024_realistic_v21_STD_Recycled_2024_noPU-v1/2580000/a65a9d3e-c48b-4316-9947-64c1906fc136.root'
-
+        #'/store/relval/CMSSW_14_1_0/RelValSinglePiFlatPt0p7To10/GEN-SIM-RECO/140X_mcRun3_2024_realistic_v21_STD_Recycled_2024_noPU-v1/2580000/a65a9d3e-c48b-4316-9947-64c1906fc136.root'
+        'file:RelValSinglePionNoPURawPrime0.root'
     ))
 
 # Other statements
@@ -29,7 +29,7 @@ process.source = cms.Source("PoolSource",
 from Configuration.AlCa.GlobalTag import GlobalTag
 process.GlobalTag = GlobalTag(process.GlobalTag,'140X_mcRun3_2024_realistic_v21' , '')#'140X_dataRun3_Prompt_v3'
 
-process.stripmlAnalyzer = cms.EDAnalyzer("StripMLAnalyzer",
+process.stripmlAnalyzer = cms.EDAnalyzer("ApproxStripMLAnalyzer",
                                 tracks = cms.InputTag('generalTracks','','RECO'),
                                 siStripClustersTag = cms.InputTag('siStripClusters','','RECO'),
                                 approxSiStripClustersTag = cms.InputTag("hltSiStripClusters2ApproxClusters")

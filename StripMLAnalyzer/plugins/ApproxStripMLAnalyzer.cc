@@ -1,9 +1,9 @@
 // -*- C++ -*-
 //
-// Package:    StripMLStudies/StripMLAnalyzer
-// Class:      StripMLAnalyzer
+// Package:    StripMLStudies/ApproxStripMLAnalyzer
+// Class:      ApproxStripMLAnalyzer
 //
-/**\class StripMLAnalyzer StripMLAnalyzer.cc StripMLStudies/StripMLAnalyzer/plugins/StripMLAnalyzer.cc
+/**\class ApproxStripMLAnalyzer ApproxStripMLAnalyzer.cc StripMLStudies/ApproxStripMLAnalyzer/plugins/ApproxStripMLAnalyzer.cc
 
  Description: [one line class summary]
 
@@ -63,10 +63,10 @@
 
 using reco::TrackCollection;
 
-class StripMLAnalyzer : public edm::one::EDAnalyzer<edm::one::SharedResources> {
+class ApproxStripMLAnalyzer : public edm::one::EDAnalyzer<edm::one::SharedResources> {
 public:
-  explicit StripMLAnalyzer(const edm::ParameterSet&);
-  ~StripMLAnalyzer() override;
+  explicit ApproxStripMLAnalyzer(const edm::ParameterSet&);
+  ~ApproxStripMLAnalyzer() override;
 
 private:
 
@@ -87,6 +87,10 @@ private:
   int runN;
   int lumi;
 
+  uint16_t    firstStrip;
+  uint16_t    endStrip;
+  float       barycenter;
+  
   uint32_t    detId_;
   uint16_t    size;
   uint16_t    sig_width;
@@ -120,7 +124,7 @@ private:
 //
 // constructors and destructor
 //
-StripMLAnalyzer::StripMLAnalyzer(const edm::ParameterSet& iConfig) {
+ApproxStripMLAnalyzer::ApproxStripMLAnalyzer(const edm::ParameterSet& iConfig) {
   
   //now do what ever initialization is needed
   inputTagClusters  = iConfig.getParameter<edm::InputTag>("siStripClustersTag");
@@ -158,7 +162,7 @@ StripMLAnalyzer::StripMLAnalyzer(const edm::ParameterSet& iConfig) {
   
 }
 
-StripMLAnalyzer::~StripMLAnalyzer() {
+ApproxStripMLAnalyzer::~ApproxStripMLAnalyzer() {
   // do anything here that needs to be done at desctruction time
   // (e.g. close files, deallocate resources etc.)
   //
@@ -170,7 +174,7 @@ StripMLAnalyzer::~StripMLAnalyzer() {
 //
 
 // ------------ method called for each event  ------------
-void StripMLAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup) {
+void ApproxStripMLAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup) {
   using namespace edm;
 
   const auto& tkGeom = &iSetup.getData(tkGeomToken_);
@@ -223,41 +227,53 @@ void StripMLAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& i
   }
 
    
-  for (const auto& detSiStripClusters : *clusterCollection) {
+  for (const auto& detSiStripClusters : *approxClusterCollection) {
 
     eventN = iEvent.id().event();
     runN   = (int) iEvent.id().run();
     lumi   = (int) iEvent.id().luminosityBlock();
     
-    DetId detId = detSiStripClusters.detId();
+    DetId detId = detSiStripClusters.id();
 
 
     
     for (const auto& stripCluster : detSiStripClusters) {
-      bool matched = false; 
-      detId_ = detId;
-      charge = stripCluster.charge();
-      size   = stripCluster.size();
-      int subDet = detId.subdetId();
-      
-      for (int strip = stripCluster.firstStrip(); strip < stripCluster.endStrip(); ++strip){
-	
-	adc [strip - stripCluster.firstStrip()] = stripCluster[strip - stripCluster.firstStrip()];
- 	
-      }
-     
+      bool matched = false;
 
+
+      ///// 1. converting approxCluster to stripCluster: for the estimation of firstStrip, endStrip, adc info
+      uint16_t nStrips{0};      
+      detId_ = detId;
       const auto& _detId = detId_; // for the capture clause in the lambda function
       auto det = std::find_if(tkDets.begin(), tkDets.end(), [_detId](auto& elem) -> bool {
 	return (elem->geographicalId().rawId() == _detId);
       });
       const StripTopology& p = dynamic_cast<const StripGeomDetUnit*>(*det)->specificTopology();
 
+      nStrips = p.nstrips() - 1;
+      const auto convertedCluster = SiStripCluster(stripCluster, nStrips);
+
+      firstStrip = convertedCluster.firstStrip();
+      endStrip   = convertedCluster.endStrip();
+      barycenter = convertedCluster.barycenter();
+      size       = convertedCluster.size();
+      charge     = convertedCluster.charge();
+      
+      int subDet = detId.subdetId();
+      
+      for (int strip = firstStrip; strip < endStrip; ++strip){
+	
+	adc [strip - firstStrip] = convertedCluster[strip - firstStrip];
+ 	
+      }
+     
+
+      
      
       auto mapid = MapRecoHits.find(detId_);
       
       
-      LocalPoint tar_lp  = p.localPosition((float)  stripCluster.barycenter());
+      LocalPoint tar_lp  = p.localPosition((float)  barycenter);
       GlobalPoint tar_gp = (tkGeom->idToDet(detId_))->surface().toGlobal(tar_lp);
 
       
@@ -281,26 +297,26 @@ void StripMLAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& i
 	
 	if (matched){
 
-	  sig_width = stripCluster.size();
+	  sig_width = size;
 	  sig_detId = detId_;
-	  for (int strip = stripCluster.firstStrip(); strip < stripCluster.endStrip(); ++strip){ 
-	    sig_hitX [strip - stripCluster.firstStrip()] = tar_gp.x();
-	    sig_hitY [strip - stripCluster.firstStrip()] = tar_gp.y();
-	    sig_hitZ [strip - stripCluster.firstStrip()] = tar_gp.z();
-	    sig_adc [strip - stripCluster.firstStrip()] = stripCluster[strip - stripCluster.firstStrip()];
+	  for (int strip = firstStrip; strip < endStrip; ++strip){ 
+	    sig_hitX [strip - firstStrip] = tar_gp.x();
+	    sig_hitY [strip - firstStrip] = tar_gp.y();
+	    sig_hitZ [strip - firstStrip] = tar_gp.z();
+	    sig_adc [strip - firstStrip] = convertedCluster[strip - firstStrip];
 	  }
 	}
 	
       }
       else{
 
-	bkg_width = stripCluster.size();
+	bkg_width = size;
 	bkg_detId = detId_;
-	for (int strip = stripCluster.firstStrip(); strip < stripCluster.endStrip(); ++strip){
-	  bkg_hitX [strip - stripCluster.firstStrip()] = tar_gp.x();
-	  bkg_hitY [strip - stripCluster.firstStrip()] = tar_gp.y();
-	  bkg_hitZ [strip - stripCluster.firstStrip()] = tar_gp.z();
-	  bkg_adc [strip - stripCluster.firstStrip()] = stripCluster[strip - stripCluster.firstStrip()];
+	for (int strip = firstStrip; strip < endStrip; ++strip){
+	  bkg_hitX [strip - firstStrip] = tar_gp.x();
+	  bkg_hitY [strip - firstStrip] = tar_gp.y();
+	  bkg_hitZ [strip - firstStrip] = tar_gp.z();
+	  bkg_adc [strip - firstStrip] = convertedCluster[strip - firstStrip];
 	}
 	
       }
@@ -313,4 +329,4 @@ void StripMLAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& i
 }
 
 //define this as a plug-in
-DEFINE_FWK_MODULE(StripMLAnalyzer);
+DEFINE_FWK_MODULE(ApproxStripMLAnalyzer);
