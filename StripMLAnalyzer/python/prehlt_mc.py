@@ -1,6 +1,6 @@
-# hltGetConfiguration /users/vmuralee/PREmenu/V9 --globaltag 140X_dataRun3_HLT_for2024TSGStudies_v1 --data --unprescale --max-events 100 --eras Run3 --input /store/data/Run2024F/EphemeralHLTPhysics1/RAW/v1/000/382/250/00000/005365a4-1194-48b8-a3c3-8da53a6a5dd5.root
+# hltGetConfiguration /users/vmuralee/PREmenu/V11 --globaltag 140X_mcRun3_2024_realistic_v21 --mc --unprescale --max-events 100 --eras Run3 --input /store/relval/CMSSW_14_1_0/RelValSinglePiFlatPt0p7To10/GEN-SIM-RECO/140X_mcRun3_2024_realistic_v21_STD_Recycled_2024_noPU-v1/2580000/a65a9d3e-c48b-4316-9947-64c1906fc136.root
 
-# /users/vmuralee/PREmenu/V9 (CMSSW_14_0_11)
+# /users/vmuralee/PREmenu/V11 (CMSSW_14_0_11)
 
 import FWCore.ParameterSet.Config as cms
 
@@ -8,7 +8,7 @@ from Configuration.Eras.Era_Run3_cff import Run3
 process = cms.Process( "HLTX", Run3 )
 
 process.HLTConfigVersion = cms.PSet(
-  tableName = cms.string("/users/vmuralee/PREmenu/V9")
+  tableName = cms.string("/users/vmuralee/PREmenu/V11")
 )
 
 process.HLTSiStripClusterChargeCutNone = cms.PSet(  value = cms.double( -1.0 ) )
@@ -250,7 +250,7 @@ process.hltGtStage2ObjectMap = cms.EDProducer( "L1TGlobalProducer",
     JetInputTag = cms.InputTag( 'hltGtStage2Digis','Jet' ),
     EtSumInputTag = cms.InputTag( 'hltGtStage2Digis','EtSum' ),
     EtSumZdcInputTag = cms.InputTag( 'hltGtStage2Digis','EtSumZDC' ),
-    #CICADAInputTag = cms.InputTag( "" ),
+    CICADAInputTag = cms.InputTag( "" ),
     ExtInputTag = cms.InputTag( "hltGtStage2Digis" ),
     AlgoBlkInputTag = cms.InputTag( "hltGtStage2Digis" ),
     GetPrescaleColumnFromData = cms.bool( False ),
@@ -375,9 +375,9 @@ process.rawDataRepacker = cms.EDProducer( "RawDataCollectorByLabel",
     verbose = cms.untracked.int32( 0 ),
     RawCollectionList = cms.VInputTag( 'hltSiStripDigiToZSRaw','source','rawDataCollector' )
 )
-process.rawPrimeDataRepacker = cms.EDProducer( "EvFFEDSelector",
-    inputTag = cms.InputTag( "rawDataCollector" ),
-    fedList = cms.vuint32( 812, 1023 )
+process.rawPrimeDataRepacker = cms.EDProducer( "EvFFEDExcluder",
+    src = cms.InputTag( "rawDataCollector" ),
+    fedsToExclude = ( cms.vuint32( 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 128, 129, 130, 131, 132, 133, 134, 135, 136, 137, 138, 139, 140, 141, 142, 143, 144, 145, 146, 147, 148, 149, 150, 151, 152, 153, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 180, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254, 255, 256, 257, 258, 259, 260, 261, 262, 263, 264, 265, 266, 267, 268, 269, 270, 271, 272, 273, 274, 275, 276, 277, 278, 279, 280, 281, 282, 283, 284, 285, 286, 287, 288, 289, 290, 291, 292, 293, 294, 295, 296, 297, 298, 299, 300, 301, 302, 303)+cms.vuint32( 304, 305, 306, 307, 308, 309, 310, 311, 312, 313, 314, 315, 316, 317, 318, 319, 320, 321, 322, 323, 324, 325, 326, 327, 328, 329, 330, 331, 332, 333, 334, 335, 336, 337, 338, 339, 340, 341, 342, 343, 344, 345, 346, 347, 348, 349, 350, 351, 352, 353, 354, 355, 356, 357, 358, 359, 360, 361, 362, 363, 364, 365, 366, 367, 368, 369, 370, 371, 372, 373, 374, 375, 376, 377, 378, 379, 380, 381, 382, 383, 384, 385, 386, 387, 388, 389, 390, 391, 392, 393, 394, 395, 396, 397, 398, 399, 400, 401, 402, 403, 404, 405, 406, 407, 408, 409, 410, 411, 412, 413, 414, 415, 416, 417, 418, 419, 420, 421, 422, 423, 424, 425, 426, 427, 428, 429, 430, 431, 432, 433, 434, 435, 436, 437, 438, 439, 440, 441, 442, 443, 444, 445, 446, 447, 448, 449, 450, 451, 452, 453, 454, 455, 456, 457, 458, 459, 460, 461, 462, 463, 464, 465, 466, 467, 468, 469, 470, 471, 472, 473, 474, 475, 476, 477, 478, 479, 480, 481, 482, 483, 484, 485, 486, 487, 488, 489, 490) )
 )
 process.HLTBool = cms.EDFilter( "HLTBool",
     result = cms.bool( True )
@@ -396,7 +396,7 @@ process.hltPreDatasetHIPhysicsRawPrime = cms.EDFilter( "HLTPrescaler",
 )
 
 process.hltOutputPhysicsHIPhysicsRawPrime0 = cms.OutputModule( "PoolOutputModule",
-    fileName = cms.untracked.string( "RelValSinglePionNoPURawPrime0.root" ),
+    fileName = cms.untracked.string( "/eos/home-v/vmuralee/PREanalysis/clusterMLstudies/RelValSinglePionNoPURawPrimeDefault.root" ),
     compressionAlgorithm = cms.untracked.string( "ZSTD" ),
     compressionLevel = cms.untracked.int32( 3 ),
     fastCloning = cms.untracked.bool( False ),
@@ -405,16 +405,15 @@ process.hltOutputPhysicsHIPhysicsRawPrime0 = cms.OutputModule( "PoolOutputModule
         dataTier = cms.untracked.string( "RAW" )
     ),
     SelectEvents = cms.untracked.PSet(  SelectEvents = cms.vstring( 'Dataset_HIPhysicsRawPrime' ) ),
-    outputCommands = cms.untracked.vstring('drop *',
-      'keep *_*siStripClusters*_*_*',
-      'keep *_*generalTracks*_*_*',
-      'keep *_hltSiStripClusters2ApproxClusters_*_*',
-      'keep DetIds_hltSiStripRawToDigi_*_HLTX',
-      'keep FEDRawDataCollection_raw*_*_HLTX',
-      'keep FEDRawDataCollection_hltSiStripDigiToZSRaw_*_HLTX',
-      'keep GlobalObjectMapRecord_hltGtStage2ObjectMap_*_HLTX',
-      'keep edmTriggerResults_*_*_HLTX',
-      'keep triggerTriggerEvent_*_*_HLTX'),
+    outputCommands = cms.untracked.vstring('keep *_*_*_*'),
+    # outputCommands = cms.untracked.vstring( 'drop *',
+    # 'keep int_*_*_*',
+    #   'keep *_hltSiStripClusters2ApproxClusters*_*_*',
+    #   'keep DetIds_hltSiStripRawToDigi_*_*',
+    #   'keep FEDRawDataCollection_*_*_*',
+    #   'keep GlobalObjectMapRecord_hltGtStage2ObjectMap_*_*',
+    #   'keep edmTriggerResults_*_*_*',
+    #   'keep triggerTriggerEvent_*_*_*' )
 )
 
 process.HLTBeamSpot = cms.Sequence( process.hltOnlineBeamSpot + process.hltOnlineMetaDigis )
@@ -431,20 +430,23 @@ process.Dataset_HIPhysicsRawPrime = cms.Path( process.HLTDatasetPathBeginSequenc
 process.PhysicsHIPhysicsRawPrime0Output = cms.FinalPath( process.hltOutputPhysicsHIPhysicsRawPrime0 )
 
 
-process.schedule = cms.Schedule( *( process.HLT_HIL1NotBptxOR_v8, process.Dataset_HIPhysicsRawPrime,process.PhysicsHIPhysicsRawPrime0Output, ))
+process.schedule = cms.Schedule( *(process.HLT_HIL1NotBptxOR_v8, process.Dataset_HIPhysicsRawPrime, process.PhysicsHIPhysicsRawPrime0Output, ))
 
 
 # source module (EDM inputs)
 process.source = cms.Source( "PoolSource",
     fileNames = cms.untracked.vstring(
-        #'/store/data/Run2024F/EphemeralHLTPhysics1/RAW/v1/000/382/250/00000/005365a4-1194-48b8-a3c3-8da53a6a5dd5.root',
-        '/store/relval/CMSSW_14_1_0/RelValSinglePiFlatPt0p7To10/GEN-SIM-RECO/140X_mcRun3_2024_realistic_v21_STD_Recycled_2024_noPU-v1/2580000/a65a9d3e-c48b-4316-9947-64c1906fc136.root'
+        '/store/relval/CMSSW_14_1_0/RelValSinglePiFlatPt0p7To10/GEN-SIM-RECO/140X_mcRun3_2024_realistic_v21_STD_Recycled_2024_noPU-v1/2580000/a65a9d3e-c48b-4316-9947-64c1906fc136.root',
     ),
     secondaryFileNames = cms.untracked.vstring(
         '/store/relval/CMSSW_14_1_0/RelValSinglePiFlatPt0p7To10/GEN-SIM-DIGI-RAW/140X_mcRun3_2024_realistic_v21_STD_Recycled_2024_noPU-v1/2580000/734b9a99-a98a-4c81-8e3e-21121f074b09.root',
         '/store/relval/CMSSW_14_1_0/RelValSinglePiFlatPt0p7To10/GEN-SIM-DIGI-RAW/140X_mcRun3_2024_realistic_v21_STD_Recycled_2024_noPU-v1/2580000/b0834551-1e2c-4d39-b51d-d8e554fa3f43.root'),
     inputCommands = cms.untracked.vstring(
-        'keep *'
+        # 'kepp *'
+        # 'drop *_*_*_RECO',
+        # 'keep *_*_*_HLT'
+        # 'keep FEDRawDataCollection_*_*_*',
+        # 'keep *_*addPileupInfo*_*_*'
     )
 )
 
@@ -482,25 +484,22 @@ process.dqmOutput = cms.OutputModule("DQMRootOutputModule",
 process.DQMOutput = cms.FinalPath( process.dqmOutput )
 process.schedule.append( process.DQMOutput )
 
-# # add specific customizations
-# _customInfo = {}
-# _customInfo['menuType'  ]= "GRun"
-# _customInfo['globalTags']= {}
-# _customInfo['globalTags'][True ] = "auto:run3_hlt_GRun"
-# _customInfo['globalTags'][False] = "auto:run3_mc_GRun"
-# _customInfo['inputFiles']={}
-# _customInfo['inputFiles'][True]  = "file:RelVal_Raw_GRun_DATA.root"
-# _customInfo['inputFiles'][False] = "file:RelVal_Raw_GRun_MC.root"
-# _customInfo['maxEvents' ]=  100
-# _customInfo['globalTag' ]= "140X_mcRun3_2024_realistic_v21"
-# #_customInfo['inputFile' ]=['/store/relval/CMSSW_14_1_0/RelValSinglePiFlatPt0p7To10/GEN-SIM-RECO/140X_mcRun3_2024_realistic_v21_STD_Recycled_2024_noPU-v1/2580000/a65a9d3e-c48b-4316-9947-64c1906fc136.root']
+# add specific customizations
+_customInfo = {}
+_customInfo['menuType'  ]= "GRun"
+_customInfo['globalTags']= {}
+_customInfo['globalTags'][True ] = "auto:run3_hlt_GRun"
+_customInfo['globalTags'][False] = "auto:run3_mc_GRun"
+_customInfo['inputFiles']={}
+_customInfo['inputFiles'][True]  = "file:RelVal_Raw_GRun_DATA.root"
+_customInfo['inputFiles'][False] = "file:RelVal_Raw_GRun_MC.root"
+_customInfo['maxEvents' ]=  100
+_customInfo['globalTag' ]= "140X_mcRun3_2024_realistic_v21"
+_customInfo['inputFile' ]=  ['/store/relval/CMSSW_14_1_0/RelValSinglePiFlatPt0p7To10/GEN-SIM-RECO/140X_mcRun3_2024_realistic_v21_STD_Recycled_2024_noPU-v1/2580000/a65a9d3e-c48b-4316-9947-64c1906fc136.root']
+_customInfo['realData'  ]=  False
 
-
-
-# _customInfo['realData'  ]=  True
-
-# from HLTrigger.Configuration.customizeHLTforALL import customizeHLTforAll
-# process = customizeHLTforAll(process,"GRun",_customInfo)
+from HLTrigger.Configuration.customizeHLTforALL import customizeHLTforAll
+process = customizeHLTforAll(process,"GRun",_customInfo)
 
 from HLTrigger.Configuration.customizeHLTforCMSSW import customizeHLTforCMSSW
 process = customizeHLTforCMSSW(process,"GRun")
@@ -508,3 +507,4 @@ process = customizeHLTforCMSSW(process,"GRun")
 # Eras-based customisations
 from HLTrigger.Configuration.Eras import modifyHLTforEras
 modifyHLTforEras(process)
+
