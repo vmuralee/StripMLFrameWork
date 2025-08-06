@@ -1,0 +1,14 @@
+<use name="FWCore/Framework"/>
+<use name="FWCore/Utilities"/>
+<use name="FWCore/ParameterSet"/>
+<use name="FWCore/PluginManager"/>
+<use name="DataFormats/SiStripCluster"/>
+<use name="DataFormats/Common"/>
+<use name="DataFormats/GeometryVector"/>
+<use name="Geometry/Records"/>
+<use name="Geometry/TrackerGeometryBuilder"/>
+<use name="DataFormats/TrackerCommon"/>
+<use name="PhysicsTools/TensorFlow"/>
+<use name="CommonTools/UtilAlgos"/>
+
+<flags EDM_PLUGIN="1"/>
