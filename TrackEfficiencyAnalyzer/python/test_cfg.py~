@@ -1,0 +1,41 @@
+import FWCore.ParameterSet.Config as cms
+
+process = cms.Process("TrackEff")
+
+process.load("SimGeneral.TrackingAnalysis.trackingParticles_cfi")
+#process.load("SimTracker.TrackAssociatorProducers.trackAssociatorByHits_cfi")
+process.load('Configuration.StandardSequences.GeometryRecoDB_cff')
+process.load('Configuration.StandardSequences.EndOfProcess_cff')
+process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_cff')
+process.load('SimGeneral.HepPDTESSource.pythiapdt_cfi')
+process.load("SimGeneral.TrackingAnalysis.simHitTPAssociation_cfi")
+
+
+
+from Configuration.AlCa.GlobalTag import GlobalTag
+process.GlobalTag = GlobalTag(process.GlobalTag,'140X_mcRun3_2022_realistic_v12' , '')#'140X_dataRun3_Prompt_v3'
+
+
+process.trackEfficiencyAnalyzer = cms.EDAnalyzer("TrackEfficiencyAnalyzer",
+    recoTracks = cms.InputTag("generalTracks", "" ,"reRECO"),
+    simTracks = cms.InputTag("mix", "MergedTrackTruth"),
+
+    maxDeltaR = cms.double(0.05),  # matching threshold
+    minSimPt = cms.double(0.5)
+)
+process.maxEvents = cms.untracked.PSet(input = cms.untracked.int32(100))
+process.source = cms.Source("PoolSource",
+    fileNames = cms.untracked.vstring("file:step_reco_RAW2DIGI_L1Reco_RECO.root"),
+    # secondaryFileNames=cms.untracked.vstring(
+    #     '/store/relval/CMSSW_14_1_0/RelValSinglePiFlatPt0p7To10/GEN-SIM-DIGI-RAW/140X_mcRun3_2024_realistic_v21_STD_Recycled_2024_noPU-v1/2580000/734b9a99-a98a-4c81-8e3e-21121f074b09.root',
+    #     '/store/relval/CMSSW_14_1_0/RelValSinglePiFlatPt0p7To10/GEN-SIM-DIGI-RAW/140X_mcRun3_2024_realistic_v21_STD_Recycled_2024_noPU-v1/2580000/b0834551-1e2c-4d39-b51d-d8e554fa3f43.root'
+    #    )
+)
+
+process.TFileService = cms.Service("TFileService",
+    fileName = cms.string("trackEfficiency.root")
+)
+process.p = cms.Path(
+    process.trackEfficiencyAnalyzer
+)
+
