@@ -365,7 +365,7 @@ process.hltSiStripClusterizerForRawPrime = cms.EDProducer( "SiStripClusterizer",
     ),
     DigiProducersList = cms.VInputTag( 'hltSiStripRawToDigi:ZeroSuppressed','hltSiStripZeroSuppression:VirginRaw','hltSiStripZeroSuppression:ProcessedRaw','hltSiStripZeroSuppression:ScopeMode' )
 )
-process.hltSiStripClusters2ApproxClusters = cms.EDProducer( "SiStripClusters2ApproxClusters",
+process.hltSiStripClusters2ApproxClustersold = cms.EDProducer( "SiStripClusters2ApproxClusters",
     inputClusters = cms.InputTag( "hltSiStripClusterizerForRawPrime" ),
     maxSaturatedStrips = cms.uint32( 3 ),
     clusterShapeHitFilterLabel = cms.string( "ClusterShapeHitFilter" ),
@@ -420,7 +420,7 @@ process.HLTBeamSpot = cms.Sequence( process.hltOnlineBeamSpot + process.hltOnlin
 process.HLTL1UnpackerSequence = cms.Sequence( process.hltGtStage2Digis + process.hltGtStage2ObjectMap )
 process.HLTBeginSequence = cms.Sequence( process.HLTBeamSpot + process.HLTL1UnpackerSequence + process.HLTTriggerTypeFilter )
 process.HLTDoSiStripZeroSuppression = cms.Sequence( process.hltSiStripRawToDigi + process.hltSiStripZeroSuppression )
-process.HLTDoHIStripZeroSuppressionAndRawPrimeRepacker = cms.Sequence( process.hltSiStripDigiToZSRaw + process.hltSiStripClusterizerForRawPrime + process.hltSiStripClusters2ApproxClusters + process.rawDataRepacker + process.rawPrimeDataRepacker )
+process.HLTDoHIStripZeroSuppressionAndRawPrimeRepacker = cms.Sequence( process.hltSiStripDigiToZSRaw + process.hltSiStripClusterizerForRawPrime + process.hltSiStripClusters2ApproxClustersold + process.rawDataRepacker + process.rawPrimeDataRepacker )
 process.HLTDoHIStripZeroSuppressionAndRawPrime = cms.Sequence( process.HLTDoSiStripZeroSuppression + process.HLTDoHIStripZeroSuppressionAndRawPrimeRepacker )
 process.HLTEndSequence = cms.Sequence( process.HLTBool )
 process.HLTDatasetPathBeginSequence = cms.Sequence( process.hltGtStage2Digis )
