@@ -41,7 +41,20 @@ The details for each package shown below,
     It is a `EDProducer` which store the approximated cluster after applying `NN score` in each event. The configuration `test/DnnApproxCluster_cfg.py` has the parameter called `NN_threshold` which can vary the cut on the DNN score. It adds new reduced approximate cluster `*_hltSiStripClusters2ApproxClusters_*_nnHLT` and drop the `*_hltSiStripClusters2ApproxClustersold_*_HLTX` collection. 
 
   - #### Track reconstruction
-    
-    
+
+```
+cmsDriver.py step_reco --conditions 140X_mcRun3_2024_realistic_v21 -s RAW2DIGI,L1Reco,RECO  --datatier RECO --eventcontent RECO --mc --process reRECO --scenario pp --era Run3_pp_on_PbPb_approxSiStripClusters --customise Configuration/DataProcessing/RecoTLR.customisePostEra_Run3 --hltProcess HLTX -n 100 --filein file:/eos/home-v/vmuralee/PREanalysis/clusterMLstudies/SinglePionApproxDnn.root --repacked --no_exec
+```
+
+Due to avoid the error I have command out following lines,
+```
+ from Configuration.Applications.ConfigBuilder import MassReplaceInputTag                                                                                                            MassReplaceInputTag(process, new="rawDataMapperByLabel", old="rawDataCollector")
+```
+The output file contains the reconstructed tracks from our new sistrip collection. 
+
+ - #### TrackEfficiencyAnalyzer
+
+   
+     
  
     
