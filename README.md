@@ -53,6 +53,7 @@ Due to avoid the error I have command out following lines,
 The output file contains the reconstructed tracks from our new sistrip collection. 
 
  - #### TrackEfficiencyAnalyzer
+   `cd TrackEfficiencyAnalyzer/` is analyzer to perform the track efficiency. 
 
    
      
