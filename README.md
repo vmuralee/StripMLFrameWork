@@ -7,6 +7,7 @@ The aim of this frame-work to differentiate cluster formed from the noise over t
     cd CMSSW_14_1_0_pre3/src/
     git clone https://github.com/vmuralee/StripMLFrameWork.git
     cd StripClusterMLStudies
+    scram b -j 32
   ```
 
 The details for each package shown below,
